@@ -1,0 +1,9 @@
+[
+  "Administrator", "Guest", "krbtgt", "jdoe", "asmith", "bjones", "cwilliams", "dbrown", "edavis", "fmiller",
+  "gwilson", "hmoore", "itaylor", "janderson", "kthomas", "ljackson", "mwhite", "nharris", "omartin", "pthompson",
+  "qgarcia", "rmartinez", "srobinson", "tclark", "urodriguez", "vlewis", "wlee", "xwalker", "yhall", "zallen",
+  "abaker", "bking", "cwright", "dscott", "etorres", "fnguyen", "ghill", "hflores", "igreen", "jadams",
+  "knelson", "lbaker", "mhall", "nrivera", "ocampbell", "pmitchell", "qcarter", "rroberts", "sgomez", "tphillips",
+  "uevans", "vturner", "wdiaz", "xparker", "ycruz", "zedwards", "acollins", "breyes", "cstewart", "dmorris",
+  "service_account_sql", "service_account_web", "service_account_backup", "deploy_bot", "monitoring_agent"
+]

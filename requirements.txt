@@ -1,0 +1,9 @@
+gradio
+langchain
+langchain-openai
+langchain-anthropic
+langchain-google-genai
+langchain-ollama
+chromadb
+langchain-chroma
+python-dotenv

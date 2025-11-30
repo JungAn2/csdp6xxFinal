@@ -1,0 +1,302 @@
+[
+    {
+        "id": 4624,
+        "level": "Information",
+        "desc": "An account was successfully logged on."
+    },
+    {
+        "id": 4625,
+        "level": "Error",
+        "desc": "An account failed to log on."
+    },
+    {
+        "id": 4634,
+        "level": "Information",
+        "desc": "An account was logged off."
+    },
+    {
+        "id": 4647,
+        "level": "Information",
+        "desc": "User initiated logoff."
+    },
+    {
+        "id": 4648,
+        "level": "Information",
+        "desc": "A logon was attempted using explicit credentials."
+    },
+    {
+        "id": 4672,
+        "level": "Information",
+        "desc": "Special privileges assigned to new logon."
+    },
+    {
+        "id": 4720,
+        "level": "Information",
+        "desc": "A user account was created."
+    },
+    {
+        "id": 4722,
+        "level": "Information",
+        "desc": "A user account was enabled."
+    },
+    {
+        "id": 4723,
+        "level": "Information",
+        "desc": "An attempt was made to change an account's password."
+    },
+    {
+        "id": 4724,
+        "level": "Information",
+        "desc": "An attempt was made to reset an account's password."
+    },
+    {
+        "id": 4725,
+        "level": "Information",
+        "desc": "A user account was disabled."
+    },
+    {
+        "id": 4726,
+        "level": "Information",
+        "desc": "A user account was deleted."
+    },
+    {
+        "id": 4728,
+        "level": "Information",
+        "desc": "A member was added to a security-enabled global group."
+    },
+    {
+        "id": 4729,
+        "level": "Information",
+        "desc": "A member was removed from a security-enabled global group."
+    },
+    {
+        "id": 4732,
+        "level": "Information",
+        "desc": "A member was added to a security-enabled local group."
+    },
+    {
+        "id": 4733,
+        "level": "Information",
+        "desc": "A member was removed from a security-enabled local group."
+    },
+    {
+        "id": 4735,
+        "level": "Information",
+        "desc": "A security-enabled local group was changed."
+    },
+    {
+        "id": 4738,
+        "level": "Information",
+        "desc": "A user account was changed."
+    },
+    {
+        "id": 4740,
+        "level": "Warning",
+        "desc": "A user account was locked out."
+    },
+    {
+        "id": 4756,
+        "level": "Information",
+        "desc": "A member was added to a security-enabled universal group."
+    },
+    {
+        "id": 4757,
+        "level": "Information",
+        "desc": "A member was removed from a security-enabled universal group."
+    },
+    {
+        "id": 4767,
+        "level": "Information",
+        "desc": "A user account was unlocked."
+    },
+    {
+        "id": 4768,
+        "level": "Information",
+        "desc": "A Kerberos authentication ticket (TGT) was requested."
+    },
+    {
+        "id": 4769,
+        "level": "Information",
+        "desc": "A Kerberos service ticket was requested."
+    },
+    {
+        "id": 4770,
+        "level": "Information",
+        "desc": "A Kerberos service ticket was renewed."
+    },
+    {
+        "id": 4771,
+        "level": "Error",
+        "desc": "Kerberos pre-authentication failed."
+    },
+    {
+        "id": 4776,
+        "level": "Information",
+        "desc": "The computer attempted to validate the credentials for an account."
+    },
+    {
+        "id": 4778,
+        "level": "Information",
+        "desc": "A session was reconnected to a Window Station."
+    },
+    {
+        "id": 4779,
+        "level": "Information",
+        "desc": "A session was disconnected from a Window Station."
+    },
+    {
+        "id": 4781,
+        "level": "Information",
+        "desc": "The name of an account was changed."
+    },
+    {
+        "id": 4798,
+        "level": "Information",
+        "desc": "A user's local group membership was enumerated."
+    },
+    {
+        "id": 4799,
+        "level": "Information",
+        "desc": "A security-enabled local group membership was enumerated."
+    },
+    {
+        "id": 4800,
+        "level": "Information",
+        "desc": "The workstation was locked."
+    },
+    {
+        "id": 4801,
+        "level": "Information",
+        "desc": "The workstation was unlocked."
+    },
+    {
+        "id": 4802,
+        "level": "Information",
+        "desc": "The screen saver was invoked."
+    },
+    {
+        "id": 4803,
+        "level": "Information",
+        "desc": "The screen saver was dismissed."
+    },
+    {
+        "id": 4816,
+        "level": "Error",
+        "desc": "RPC detected an integrity violation while decrypting an incoming message."
+    },
+    {
+        "id": 4825,
+        "level": "Information",
+        "desc": "A user was denied the right to log on to this computer."
+    },
+    {
+        "id": 4907,
+        "level": "Information",
+        "desc": "Auditing settings on object were changed."
+    },
+    {
+        "id": 4946,
+        "level": "Information",
+        "desc": "A change has been made to Windows Firewall exception list. A rule was added."
+    },
+    {
+        "id": 4947,
+        "level": "Information",
+        "desc": "A change has been made to Windows Firewall exception list. A rule was modified."
+    },
+    {
+        "id": 4948,
+        "level": "Information",
+        "desc": "A change has been made to Windows Firewall exception list. A rule was deleted."
+    },
+    {
+        "id": 4957,
+        "level": "Information",
+        "desc": "Windows Firewall did not apply the following rule."
+    },
+    {
+        "id": 5024,
+        "level": "Information",
+        "desc": "The Windows Firewall Service has started successfully."
+    },
+    {
+        "id": 5025,
+        "level": "Information",
+        "desc": "The Windows Firewall Service has been stopped."
+    },
+    {
+        "id": 5031,
+        "level": "Information",
+        "desc": "The Windows Firewall Service blocked an application from accepting incoming connections on the network."
+    },
+    {
+        "id": 5033,
+        "level": "Information",
+        "desc": "The Windows Firewall Driver has started successfully."
+    },
+    {
+        "id": 5136,
+        "level": "Information",
+        "desc": "A directory service object was modified."
+    },
+    {
+        "id": 5137,
+        "level": "Information",
+        "desc": "A directory service object was created."
+    },
+    {
+        "id": 5138,
+        "level": "Information",
+        "desc": "A directory service object was undeleted."
+    },
+    {
+        "id": 5139,
+        "level": "Information",
+        "desc": "A directory service object was moved."
+    },
+    {
+        "id": 5140,
+        "level": "Information",
+        "desc": "A network share object was accessed."
+    },
+    {
+        "id": 5142,
+        "level": "Information",
+        "desc": "A network share object was added."
+    },
+    {
+        "id": 5143,
+        "level": "Information",
+        "desc": "A network share object was modified."
+    },
+    {
+        "id": 5144,
+        "level": "Information",
+        "desc": "A network share object was deleted."
+    },
+    {
+        "id": 5145,
+        "level": "Information",
+        "desc": "A network share object was checked to see whether client can be granted desired access."
+    },
+    {
+        "id": 5152,
+        "level": "Information",
+        "desc": "The Windows Filtering Platform blocked a packet."
+    },
+    {
+        "id": 5156,
+        "level": "Information",
+        "desc": "The Windows Filtering Platform has permitted a connection."
+    },
+    {
+        "id": 5157,
+        "level": "Information",
+        "desc": "The Windows Filtering Platform has blocked a connection."
+    },
+    {
+        "id": 5158,
+        "level": "Information",
+        "desc": "The Windows Filtering Platform has permitted a bind to a local port."
+    }
+]
