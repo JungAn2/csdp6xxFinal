@@ -1,6 +1,7 @@
 import gradio as gr
 import pandas as pd
 import json
+import os
 import time
 from log_generator import LogGenerator
 from rag_engine import RAGEngine
@@ -14,13 +15,55 @@ logs_history = []
 suspicious_history = []
 is_running = False
 
+SUSPICIOUS_FILE = "suspicious_events.json"
+
+def save_suspicious_events():
+    try:
+        with open(SUSPICIOUS_FILE, 'w') as f:
+            json.dump(suspicious_history, f, indent=2)
+    except Exception as e:
+        print(f"Error saving suspicious events: {e}")
+
+def load_suspicious_events():
+    global suspicious_history
+    if os.path.exists(SUSPICIOUS_FILE):
+        try:
+            with open(SUSPICIOUS_FILE, 'r') as f:
+                suspicious_history = json.load(f)
+            print(f"Loaded {len(suspicious_history)} suspicious events.")
+        except Exception as e:
+            print(f"Error loading suspicious events: {e}")
+
 def initialize_system():
     global logs_history
-    print("Generating initial historical logs...")
-    initial_logs = log_gen.generate_initial_logs(100)
-    rag.ingest_logs(initial_logs)
-    logs_history.extend(initial_logs)
-    print(f"Ingested {len(initial_logs)} logs.")
+    
+    # Load suspicious history
+    load_suspicious_events()
+    
+    # Check if DB has data
+    try:
+        count = rag.get_log_count()
+    except Exception as e:
+        print(f"Error checking log count: {e}")
+        count = 0
+        
+    if count > 0:
+        print(f"Found {count} existing logs in DB. Loading them...")
+        existing_logs = rag.get_recent_logs(limit=100)
+        logs_history.extend(existing_logs)
+        # Reverse to keep chronological order in history list (oldest first) for appending new ones
+        # But for display we want newest first.
+        # logs_history should probably be kept chronological (append new at end).
+        # We'll handle display sorting in format_logs_for_display.
+        logs_history.sort(key=lambda x: x['LogID'] if isinstance(x['LogID'], int) else 0)
+        print(f"Loaded {len(existing_logs)} logs from history.")
+    else:
+        print("Generating initial historical logs...")
+        initial_logs = log_gen.generate_initial_logs(100)
+        rag.ingest_logs(initial_logs)
+        logs_history.extend(initial_logs)
+        print(f"Ingested {len(initial_logs)} logs.")
+    
     return format_logs_for_display(logs_history[-20:])
 
 def format_logs_for_display(logs):
@@ -34,22 +77,27 @@ def format_logs_for_display(logs):
             "LogID": log.get("LogID", "N/A"),
             "Time": log["TimeCreated"],
             "EventID": log["EventID"],
-            "Level": log["Level"],
+            "Level": log.get("Level", "Information"), # Handle missing level from reconstructed logs
             "User": log["Security"]["UserID"],
             "IP": log["EventData"]["IpAddress"],
             "Action": log["EventData"]["Description"]
         }
         flattened.append(flat)
-    return pd.DataFrame(flattened)
-
-def simulation_step(model_name):
-    global logs_history, suspicious_history
     
-    # 1. Generate new logs (simulating 5 seconds worth, maybe 1-3 logs)
+    df = pd.DataFrame(flattened)
+    # Sort by LogID descending (newest at top)
+    if "LogID" in df.columns:
+        df = df.sort_values(by="LogID", ascending=False)
+    return df
+
+def generate_logs_step():
+    global logs_history
+    
+    # 1. Generate new logs (simulating 2 seconds worth, maybe 1-2 logs)
     new_logs = []
-    # Generate 1-3 logs per step
+    # Generate 1-2 logs per step (faster cadence)
     import random
-    num_logs = random.randint(1, 3)
+    num_logs = random.randint(1, 2)
     for _ in range(num_logs):
         # 10% chance of abnormal log
         is_abnormal = random.random() < 0.1
@@ -60,9 +108,37 @@ def simulation_step(model_name):
     rag.ingest_logs(new_logs)
     logs_history.extend(new_logs)
     
-    # 3. Analyze (only the new batch)
-    analysis_json_str = rag.analyze_logs(new_logs, model_name=model_name)
+    # 3. Return updated data
+    # Show last 20 logs
+    display_df = format_logs_for_display(logs_history[-20:]) 
     
+    # Format log JSON for display
+    latest_log_json = json.dumps(new_logs, indent=2)
+    
+    return display_df, latest_log_json
+
+def analyze_logs_step(model_name):
+    global logs_history, suspicious_history
+    
+    # Analyze recent logs (e.g., last 10)
+    recent_logs = logs_history[-10:] if logs_history else []
+    
+    if not recent_logs:
+        return "Waiting for logs...", json.dumps(suspicious_history, indent=2)
+
+    # 3. Analyze
+    analysis_json_str = rag.analyze_logs(recent_logs, model_name=model_name)
+    
+    # Clean up the JSON string (strip markdown code blocks)
+    analysis_json_str = analysis_json_str.strip()
+    if analysis_json_str.startswith("```json"):
+        analysis_json_str = analysis_json_str[7:]
+    if analysis_json_str.startswith("```"):
+        analysis_json_str = analysis_json_str[3:]
+    if analysis_json_str.endswith("```"):
+        analysis_json_str = analysis_json_str[:-3]
+    analysis_json_str = analysis_json_str.strip()
+
     try:
         analysis_data = json.loads(analysis_json_str)
         suspicious_events = analysis_data.get("suspicious_events", [])
@@ -80,6 +156,7 @@ def simulation_step(model_name):
             # Append the full analysis JSON to history
             analysis_data["timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S")
             suspicious_history.insert(0, analysis_data)
+            save_suspicious_events()
             
         else:
             analysis_text += "System Normal"
@@ -94,17 +171,12 @@ def simulation_step(model_name):
                 "raw_output": analysis_json_str
             }
              suspicious_history.insert(0, suspicious_record)
+             save_suspicious_events()
 
-    # 4. Return updated data
-    display_df = format_logs_for_display(logs_history[-20:]) # Show last 20
-    
-    # Format log JSON for display
-    latest_log_json = json.dumps(new_logs, indent=2)
-    
     # Format suspicious history for display
     suspicious_json = json.dumps(suspicious_history, indent=2)
     
-    return display_df, latest_log_json, analysis_text, suspicious_json
+    return analysis_text, suspicious_json
 
 with gr.Blocks(title="Zero Trust Event Log Analysis") as demo:
     gr.Markdown("# Real-Time Zero Trust Event Log Analysis")
@@ -113,7 +185,7 @@ with gr.Blocks(title="Zero Trust Event Log Analysis") as demo:
     with gr.Row():
         model_selector = gr.Dropdown(
             choices=["OpenAI", "Anthropic", "Google", "Ollama"],
-            value="Ollama",
+            value="OpenAI",
             label="Select AI Model"
         )
         start_btn = gr.Button("Start Simulation", variant="primary")
@@ -136,23 +208,30 @@ with gr.Blocks(title="Zero Trust Event Log Analysis") as demo:
             gr.Markdown("### AI Security Insights")
             analysis_output = gr.Markdown(label="Analysis")
 
-    # Timer for the loop
-    timer = gr.Timer(10) # 10 seconds
+    # Timers
+    log_timer = gr.Timer(2.0) # Fast: 2 seconds
+    analysis_timer = gr.Timer(10.0) # Slow: 10 seconds
 
     # Events
     def start_sim():
-        return gr.Timer(active=True)
+        return gr.Timer(active=True), gr.Timer(active=True)
 
     def stop_sim():
-        return gr.Timer(active=False)
+        return gr.Timer(active=False), gr.Timer(active=False)
 
-    start_btn.click(start_sim, outputs=[timer])
-    stop_btn.click(stop_sim, outputs=[timer])
+    start_btn.click(start_sim, outputs=[log_timer, analysis_timer])
+    stop_btn.click(stop_sim, outputs=[log_timer, analysis_timer])
     
-    timer.tick(
-        simulation_step, 
+    log_timer.tick(
+        generate_logs_step,
+        inputs=None,
+        outputs=[log_table, json_display]
+    )
+    
+    analysis_timer.tick(
+        analyze_logs_step, 
         inputs=[model_selector], 
-        outputs=[log_table, json_display, analysis_output, suspicious_display]
+        outputs=[analysis_output, suspicious_display]
     )
 
     # Initialize on load

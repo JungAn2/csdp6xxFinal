@@ -7,6 +7,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
+import json
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -128,3 +129,47 @@ class RAGEngine:
         })
         
         return response.content
+
+    def get_log_count(self):
+        return self.vector_store._collection.count()
+
+    def get_recent_logs(self, limit=50):
+        # Fetch raw documents from Chroma
+        # We use the underlying collection to get the raw data
+        # To get the MOST RECENT, we need to use offset, assuming insertion order is preserved.
+        count = self.get_log_count()
+        offset = max(0, count - limit)
+        
+        # If we want the last 'limit' items, we start at offset
+        results = self.vector_store._collection.get(limit=limit, offset=offset)
+        
+        logs = []
+        import re
+        # Regex to parse the content string back into fields
+        # Format: LogID: {id}, Time: {time}, EventID: {eid}, User: {user}, IP: {ip}, Action: {action}
+        pattern = r"LogID: (?P<LogID>.*?), Time: (?P<Time>.*?), EventID: (?P<EventID>.*?), User: (?P<User>.*?), IP: (?P<IP>.*?), Action: (?P<Action>.*)"
+        
+        if results and results['documents']:
+            for doc_text, metadata in zip(results['documents'], results['metadatas']):
+                match = re.search(pattern, doc_text)
+                if match:
+                    data = match.groupdict()
+                    # Reconstruct the log object structure used in app.py
+                    log = {
+                        "LogID": int(data['LogID']) if data['LogID'].isdigit() else data['LogID'],
+                        "TimeCreated": data['Time'],
+                        "EventID": int(data['EventID']) if data['EventID'].isdigit() else data['EventID'],
+                        "Level": "Information", # Default, as it wasn't stored in text
+                        "Security": {
+                            "UserID": data['User']
+                        },
+                        "EventData": {
+                            "IpAddress": data['IP'],
+                            "Description": data['Action']
+                        }
+                    }
+                    logs.append(log)
+        
+        # Sort by LogID descending (assuming int IDs)
+        logs.sort(key=lambda x: x['LogID'] if isinstance(x['LogID'], int) else 0, reverse=True)
+        return logs
