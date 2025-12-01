@@ -88,10 +88,37 @@ class RAGEngine:
         if not recent_logs:
             return "No logs to analyze."
 
-        last_log = recent_logs[-1]
-        query = f"User {last_log['Security']['UserID']} {last_log['EventData']['Description']}"
+        # Extract unique entities from the batch to form a comprehensive query
+        users = set()
+        ips = set()
+        descriptions = set()
         
-        retrieved_docs = self.vector_store.similarity_search(query, k=3)
+        for log in recent_logs:
+            if 'Security' in log and 'UserID' in log['Security']:
+                users.add(log['Security']['UserID'])
+            if 'EventData' in log:
+                if 'IpAddress' in log['EventData']:
+                    ips.add(log['EventData']['IpAddress'])
+                if 'Description' in log['EventData']:
+                    # Take first few words of description to avoid too long query
+                    desc = log['EventData']['Description']
+                    descriptions.add(desc[:50])
+
+        # Construct a composite query
+        query_parts = []
+        if users:
+            query_parts.append(f"Users: {', '.join(users)}")
+        if ips:
+            query_parts.append(f"IPs: {', '.join(ips)}")
+        if descriptions:
+            # Limit descriptions to avoid token overflow
+            query_parts.append(f"Activities: {', '.join(list(descriptions)[:3])}")
+            
+        query = " | ".join(query_parts)
+        print(f"RAG Query: {query}")
+        
+        # Increase k slightly to capture context for multiple entities
+        retrieved_docs = self.vector_store.similarity_search(query, k=5)
         context = "\n".join([doc.page_content for doc in retrieved_docs])
         
         recent_logs_str = "\n".join([str(log) for log in recent_logs])
