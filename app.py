@@ -14,6 +14,8 @@ rag = RAGEngine()
 logs_history = []
 suspicious_history = []
 is_running = False
+is_analyzing = False
+last_analyzed_count = 0
 
 SUSPICIOUS_FILE = "suspicious_events.json"
 
@@ -35,7 +37,7 @@ def load_suspicious_events():
             print(f"Error loading suspicious events: {e}")
 
 def initialize_system():
-    global logs_history
+    global logs_history, last_analyzed_count
     
     # Load suspicious history
     load_suspicious_events()
@@ -64,6 +66,7 @@ def initialize_system():
         logs_history.extend(initial_logs)
         print(f"Ingested {len(initial_logs)} logs.")
     
+    last_analyzed_count = len(logs_history)
     return format_logs_for_display(logs_history[-20:])
 
 def format_logs_for_display(logs):
@@ -118,65 +121,79 @@ def generate_logs_step():
     return display_df, latest_log_json
 
 def analyze_logs_step(model_name):
-    global logs_history, suspicious_history
+    global logs_history, suspicious_history, is_analyzing, last_analyzed_count
     
-    # Analyze recent logs (e.g., last 10)
-    recent_logs = logs_history[-10:] if logs_history else []
-    
-    if not recent_logs:
-        return "Waiting for logs...", json.dumps(suspicious_history, indent=2)
-
-    # 3. Analyze
-    analysis_json_str = rag.analyze_logs(recent_logs, model_name=model_name)
-    
-    # Clean up the JSON string (strip markdown code blocks)
-    analysis_json_str = analysis_json_str.strip()
-    if analysis_json_str.startswith("```json"):
-        analysis_json_str = analysis_json_str[7:]
-    if analysis_json_str.startswith("```"):
-        analysis_json_str = analysis_json_str[3:]
-    if analysis_json_str.endswith("```"):
-        analysis_json_str = analysis_json_str[:-3]
-    analysis_json_str = analysis_json_str.strip()
-
+    # Prevent overlapping analysis calls
+    if is_analyzing:
+        return gr.Skip(), gr.Skip()
+        
+    is_analyzing = True
     try:
-        analysis_data = json.loads(analysis_json_str)
-        suspicious_events = analysis_data.get("suspicious_events", [])
-        summary = analysis_data.get("summary", "No summary provided.")
-        
-        analysis_text = f"**Summary:** {summary}\n\n"
-        
-        if suspicious_events:
-            analysis_text += "**Suspicious Events:**\n"
-            for event in suspicious_events:
-                flagged_id = event.get("flagged_event_id")
-                reason = event.get("reason")
-                analysis_text += f"- **ID {flagged_id}:** {reason}\n"
+        # Analyze all new logs since last analysis
+        current_count = len(logs_history)
+        if current_count <= last_analyzed_count:
+            return "Waiting for new logs...", json.dumps(suspicious_history, indent=2)
             
-            # Append the full analysis JSON to history
-            analysis_data["timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S")
-            suspicious_history.insert(0, analysis_data)
-            save_suspicious_events()
-            
-        else:
-            analysis_text += "System Normal"
-            
-    except json.JSONDecodeError:
-        analysis_text = f"**Raw Analysis:**\n{analysis_json_str}"
-        
-        # If raw analysis doesn't say "System Normal", treat it as suspicious
-        if "System Normal" not in analysis_json_str:
-             suspicious_record = {
-                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "raw_output": analysis_json_str
-            }
-             suspicious_history.insert(0, suspicious_record)
-             save_suspicious_events()
+        recent_logs = logs_history[last_analyzed_count:]
+        print(f"Analyzing batch of {len(recent_logs)} logs...")
 
-    # Format suspicious history for display
-    suspicious_json = json.dumps(suspicious_history, indent=2)
-    
-    return analysis_text, suspicious_json
+        # 3. Analyze
+        analysis_json_str = rag.analyze_logs(recent_logs, model_name=model_name)
+        
+        # Mark these logs as analyzed
+        last_analyzed_count = current_count
+        
+        # Clean up the JSON string (strip markdown code blocks)
+        analysis_json_str = analysis_json_str.strip()
+        if analysis_json_str.startswith("```json"):
+            analysis_json_str = analysis_json_str[7:]
+        if analysis_json_str.startswith("```"):
+            analysis_json_str = analysis_json_str[3:]
+        if analysis_json_str.endswith("```"):
+            analysis_json_str = analysis_json_str[:-3]
+        analysis_json_str = analysis_json_str.strip()
+
+        try:
+            analysis_data = json.loads(analysis_json_str)
+            suspicious_events = analysis_data.get("suspicious_events", [])
+            summary = analysis_data.get("summary", "No summary provided.")
+            
+            analysis_text = f"**Summary:** {summary}\n\n"
+            
+            if suspicious_events:
+                analysis_text += "**Suspicious Events:**\n"
+                for event in suspicious_events:
+                    flagged_id = event.get("flagged_event_id")
+                    reason = event.get("reason")
+                    analysis_text += f"- **ID {flagged_id}:** {reason}\n"
+                
+                # Append the full analysis JSON to history
+                analysis_data["timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S")
+                suspicious_history.insert(0, analysis_data)
+                save_suspicious_events()
+                
+            else:
+                analysis_text += "System Normal"
+                
+        except json.JSONDecodeError:
+            analysis_text = f"**Raw Analysis:**\n{analysis_json_str}"
+            
+            # If raw analysis doesn't say "System Normal", treat it as suspicious
+            if "System Normal" not in analysis_json_str:
+                 suspicious_record = {
+                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "raw_output": analysis_json_str
+                }
+                 suspicious_history.insert(0, suspicious_record)
+                 save_suspicious_events()
+
+        # Format suspicious history for display
+        suspicious_json = json.dumps(suspicious_history, indent=2)
+        
+        return analysis_text, suspicious_json
+        
+    finally:
+        is_analyzing = False
 
 with gr.Blocks(title="Zero Trust Event Log Analysis") as demo:
     gr.Markdown("# Real-Time Zero Trust Event Log Analysis")
